@@ -4,8 +4,8 @@ type locationType = {
 }
 
 type fareRequestType = {
-    location: locationType,
-    destination: locationType
+    locationCoordinates: locationType,
+    destinationCoordinates: locationType
 }
 
 export type {locationType, fareRequestType};

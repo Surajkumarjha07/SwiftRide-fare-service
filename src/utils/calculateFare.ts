@@ -3,13 +3,13 @@ import rates from "../config/rates.js";
 import { locationType } from "../types/faretypes.js";
 import { VehicleType } from "../types/vehicleType.js";
 
-function calculateFare(location: locationType, destination: locationType, vehicle: VehicleType): number {
-    const basePay = 50;
-    let perKmRate = rates[vehicle].perKmRate || 0;
+function calculateFare(locationCoordinates: locationType, destinationCoordinates: locationType, vehicle: VehicleType): number {
+    const basePay: number = 50;
+    let perKmRate: number = rates[vehicle].perKmRate || 0;
 
-    const distance = calculateDistance(location, destination);
+    const distance: number = calculateDistance(locationCoordinates, destinationCoordinates); 
 
-    const fare = basePay + (distance * perKmRate);
+    const fare: number = basePay + (distance * perKmRate);
 
     return fare;
 
