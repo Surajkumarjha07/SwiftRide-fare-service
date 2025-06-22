@@ -1,5 +1,5 @@
 import { getPreciseDistance, convertDistance } from "geolib";
-import { locationType } from "../types/faretypes.js";
+import { locationType } from "../types/fareRequesttype.js";
 
 function calculateDistance(locationCoordinates: locationType, destinationCoordinates: locationType): number {
     const distance = getPreciseDistance(

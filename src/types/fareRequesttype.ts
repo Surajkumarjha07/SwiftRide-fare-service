@@ -8,4 +8,4 @@ type fareRequestType = {
     destinationCoordinates: locationType
 }
 
-export type {locationType, fareRequestType};
+export type { locationType, fareRequestType };

@@ -1,5 +1,5 @@
 import axios from "axios";
-import { locationType } from "../types/faretypes.js";
+import { locationType } from "../types/fareRequesttype.js";
 
 async function getLocationDetails(locationCoordinates: locationType, destinationCoordinates: locationType): Promise<{ location: string, destination: string }> {
     const locationResponse = await axios.get(`https://us1.locationiq.com/v1/reverse?key=${process.env.LOCATION_IQ_ACCESS_TOKEN}&lat=${locationCoordinates.latitude}&lon=${locationCoordinates.longitude}&format=json`);
