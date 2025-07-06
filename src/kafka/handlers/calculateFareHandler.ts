@@ -1,20 +1,22 @@
 import { EachMessagePayload } from "kafkajs";
 import calculateFare from "../../utils/calculateFare.js";
-import getLocationDetails from "../../utils/getLocationDetails.js";
 import sendKafkaMessage from "../producers/sendKafkaMessage.js";
 import generateRideId from "../../utils/generateRideId.js";
+import getRideCoordinates from "../../utils/getRideCoordinates.js";
 
 async function calculateFareHandler({ message }: EachMessagePayload) {
     try {
-        const { userId, locationCoordinates, destinationCoordinates } = JSON.parse(message.value!.toString());
+        const { userId, location, destination } = JSON.parse(message.value!.toString());
 
         if (!userId) throw new Error("Id not provided!");
 
-        if (!locationCoordinates || !destinationCoordinates) throw new Error("locationCoordinates or destinationCoordinates not provided!");
+        if (!location || !destination) throw new Error("location or destination not provided!");
+        
+        const { locationCoordinates, destinationCoordinates } = await getRideCoordinates(location, destination);
 
-        const fare: number = calculateFare(locationCoordinates, destinationCoordinates, "SUV");
-
-        const { location, destination } = await getLocationDetails(locationCoordinates, destinationCoordinates);
+        console.log("locCoord: ", locationCoordinates);
+        
+        const fare: Map<string, number> = calculateFare(locationCoordinates, destinationCoordinates);
 
         console.log(`fare from ${location} to ${destination} is: ${fare}`);
 
@@ -22,11 +24,14 @@ async function calculateFareHandler({ message }: EachMessagePayload) {
 
         console.log("generated rideId: " + rideId);
 
-        await sendKafkaMessage("fare-fetched", { rideId, userId, pickUpLocation: location, destination, locationCoordinates, destinationCoordinates, fare });
+        const fareToSend = Object.fromEntries(fare);
+        console.log("fare: ", fareToSend);
+        
+        await sendKafkaMessage("fare-fetched", { rideId, userId, pickUpLocation: location, destination, locationCoordinates, destinationCoordinates, fare: fareToSend });
 
     } catch (error) {
         if (error instanceof Error) {
-            throw new Error("Error in calculate fare handler" + error.message);
+            throw new Error("Error in calculate fare handler: " + error.message);
         }
     }
 }

@@ -55,27 +55,18 @@ var rates = {
 var rates_default = rates;
 
 // src/utils/calculateFare.ts
-function calculateFare(locationCoordinates, destinationCoordinates, vehicle) {
-  const basePay = 50;
-  let perKmRate = rates_default[vehicle].perKmRate || 0;
+function calculateFare(locationCoordinates, destinationCoordinates) {
   const distance = calculateDistance_default(locationCoordinates, destinationCoordinates);
-  const fare = basePay + distance * perKmRate;
+  let fare = /* @__PURE__ */ new Map();
+  for (const vehicle of Object.keys(rates_default)) {
+    const basePay = rates_default[vehicle].basePay;
+    const perKmRate = rates_default[vehicle].perKmRate;
+    const price = Math.round(basePay + distance * perKmRate);
+    fare.set(vehicle, price);
+  }
   return fare;
 }
 var calculateFare_default = calculateFare;
-
-// src/utils/getLocationDetails.ts
-import axios from "axios";
-async function getLocationDetails(locationCoordinates, destinationCoordinates) {
-  const locationResponse = await axios.get(`https://us1.locationiq.com/v1/reverse?key=${process.env.LOCATION_IQ_ACCESS_TOKEN}&lat=${locationCoordinates.latitude}&lon=${locationCoordinates.longitude}&format=json`);
-  const locationAddress = locationResponse.data.address;
-  const location = locationAddress.road + ", " + locationAddress.suburb + ", " + locationAddress.city + ", " + locationAddress.state + ", " + locationAddress.postcode;
-  const destinationResponse = await axios.get(`https://us1.locationiq.com/v1/reverse?key=${process.env.LOCATION_IQ_ACCESS_TOKEN}&lat=${destinationCoordinates.latitude}&lon=${destinationCoordinates.longitude}&format=json`);
-  const destinationAddress = destinationResponse.data.address;
-  const destination = destinationAddress.road + ", " + destinationAddress.suburb + ", " + destinationAddress.city + ", " + destinationAddress.state + ", " + destinationAddress.postcode;
-  return { location, destination };
-}
-var getLocationDetails_default = getLocationDetails;
 
 // src/kafka/producerInIt.ts
 import { Partitioners } from "kafkajs";
@@ -93,6 +84,7 @@ async function sendKafkaMessage(topic, data) {
       topic,
       messages: [{ value: JSON.stringify(data) }]
     });
+    console.log(`${topic} sent`);
   } catch (error) {
     console.log(`error in sending ${topic}: ${error}`);
   }
@@ -111,21 +103,55 @@ async function generateRideId(length) {
 }
 var generateRideId_default = generateRideId;
 
+// src/utils/getCoordinates.ts
+import axios from "axios";
+async function getCoordinates(location) {
+  try {
+    const locationResponse = await axios.get(`https://us1.locationiq.com/v1/search?key=${process.env.LOCATION_IQ_ACCESS_TOKEN}&q=${location}&format=json&`);
+    if (!Array.isArray(locationResponse.data) || locationResponse.data.length === 0) {
+      throw new Error(`No coordinates found for location: ${location}`);
+    }
+    const { lat, lon } = locationResponse.data[0];
+    const locationCoordinates = { latitude: parseFloat(lat), longitude: parseFloat(lon) };
+    return locationCoordinates;
+  } catch (error) {
+    throw new Error("Error in getCoordinates function: " + error.message);
+  }
+}
+var getCoordinates_default = getCoordinates;
+
+// src/utils/getRideCoordinates.ts
+async function getRideCoordinates(location, destination) {
+  try {
+    const [locationCoordinates, destinationCoordinates] = await Promise.all([
+      getCoordinates_default(location),
+      getCoordinates_default(destination)
+    ]);
+    return { locationCoordinates, destinationCoordinates };
+  } catch (error) {
+    throw new Error("Error in getRideCoordinates function: " + error.message);
+  }
+}
+var getRideCoordinates_default = getRideCoordinates;
+
 // src/kafka/handlers/calculateFareHandler.ts
 async function calculateFareHandler({ message }) {
   try {
-    const { userId, locationCoordinates, destinationCoordinates } = JSON.parse(message.value.toString());
+    const { userId, location, destination } = JSON.parse(message.value.toString());
     if (!userId) throw new Error("Id not provided!");
-    if (!locationCoordinates || !destinationCoordinates) throw new Error("locationCoordinates or destinationCoordinates not provided!");
-    const fare = calculateFare_default(locationCoordinates, destinationCoordinates, "SUV");
-    const { location, destination } = await getLocationDetails_default(locationCoordinates, destinationCoordinates);
+    if (!location || !destination) throw new Error("location or destination not provided!");
+    const { locationCoordinates, destinationCoordinates } = await getRideCoordinates_default(location, destination);
+    console.log("locCoord: ", locationCoordinates);
+    const fare = calculateFare_default(locationCoordinates, destinationCoordinates);
     console.log(`fare from ${location} to ${destination} is: ${fare}`);
     const rideId = await generateRideId_default(30);
     console.log("generated rideId: " + rideId);
-    await sendKafkaMessage_default("fare-fetched", { rideId, userId, pickUpLocation: location, destination, locationCoordinates, destinationCoordinates, fare });
+    const fareToSend = Object.fromEntries(fare);
+    console.log("fare: ", fareToSend);
+    await sendKafkaMessage_default("fare-fetched", { rideId, userId, pickUpLocation: location, destination, locationCoordinates, destinationCoordinates, fare: fareToSend });
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error("Error in calculate fare handler" + error.message);
+      throw new Error("Error in calculate fare handler: " + error.message);
     }
   }
 }
