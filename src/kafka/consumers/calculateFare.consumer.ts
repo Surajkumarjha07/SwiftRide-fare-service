@@ -1,5 +1,5 @@
 import { calculate_fare_consumer } from "../consumerInIt.js";
-import calculateFareHandler from "../handlers/calculateFareHandler.js";
+import calculateFareHandler from "../handlers/calculateFare.handler.js";
 
 async function calculateFareConsumer() {
     try {

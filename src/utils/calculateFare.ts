@@ -1,15 +1,20 @@
 import calculateDistance from "./calculateDistance.js";
 import rates from "../config/rates.js";
-import { locationType } from "../types/fareRequesttype.js";
-import { VehicleType } from "../types/vehicleType.js";
+import coord from "../types/coordinate.type.js";
 
-function calculateFare(locationCoordinates: locationType, destinationCoordinates: locationType, vehicle: VehicleType): number {
-    const basePay: number = rates[vehicle].basePay;
-    let perKmRate: number = rates[vehicle].perKmRate;
+function calculateFare(locationCoordinates: coord, destinationCoordinates: coord): Map<string, number> {
 
     const distance: number = calculateDistance(locationCoordinates, destinationCoordinates);
+    let fare: Map<string, number> = new Map();
 
-    const fare: number = basePay + (distance * perKmRate);
+    for (const vehicle of Object.keys(rates) as Array<keyof typeof rates>) {
+        const basePay: number = rates[vehicle].basePay;
+        const perKmRate: number = rates[vehicle].perKmRate;
+
+        const price = Math.round(basePay + (distance * perKmRate));
+
+        fare.set(vehicle, price);
+    }
 
     return fare;
 
