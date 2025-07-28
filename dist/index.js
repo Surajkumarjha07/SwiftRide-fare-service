@@ -134,7 +134,7 @@ async function getRideCoordinates(location, destination) {
 }
 var getRideCoordinates_default = getRideCoordinates;
 
-// src/kafka/handlers/calculateFareHandler.ts
+// src/kafka/handlers/calculateFare.handler.ts
 async function calculateFareHandler({ message }) {
   try {
     const { userId, location, destination } = JSON.parse(message.value.toString());
@@ -148,21 +148,21 @@ async function calculateFareHandler({ message }) {
     console.log("generated rideId: " + rideId);
     const fareToSend = Object.fromEntries(fare);
     console.log("fare: ", fareToSend);
-    await sendKafkaMessage_default("fare-fetched", { rideId, userId, pickUpLocation: location, destination, locationCoordinates, destinationCoordinates, fare: fareToSend });
+    await sendKafkaMessage_default("fare-fetched", { rideId, userId, pickUpLocation: location, destination, locationCoordinates, destinationCoordinates, fareDetails: fareToSend });
   } catch (error) {
     if (error instanceof Error) {
       throw new Error("Error in calculate fare handler: " + error.message);
     }
   }
 }
-var calculateFareHandler_default = calculateFareHandler;
+var calculateFare_handler_default = calculateFareHandler;
 
-// src/kafka/consumers/calculateFareConsumer.ts
+// src/kafka/consumers/calculateFare.consumer.ts
 async function calculateFareConsumer() {
   try {
     await calculate_fare_consumer.subscribe({ topic: "calculate-fare", fromBeginning: true });
     await calculate_fare_consumer.run({
-      eachMessage: calculateFareHandler_default
+      eachMessage: calculateFare_handler_default
     });
   } catch (error) {
     if (error instanceof Error) {
@@ -170,7 +170,7 @@ async function calculateFareConsumer() {
     }
   }
 }
-var calculateFareConsumer_default = calculateFareConsumer;
+var calculateFare_consumer_default = calculateFareConsumer;
 
 // src/kafka/kafkaAdmin.ts
 async function kafkaInIt() {
@@ -191,7 +191,7 @@ async function kafkaInIt() {
 }
 var kafkaAdmin_default = kafkaInIt;
 
-// src/kafka/index.ts
+// src/kafka/index.kafka.ts
 var startKafka = async () => {
   try {
     await kafkaAdmin_default();
@@ -201,12 +201,12 @@ var startKafka = async () => {
     console.log("Producer initialization...");
     await producerInit();
     console.log("Producer initializated");
-    await calculateFareConsumer_default();
+    await calculateFare_consumer_default();
   } catch (error) {
     console.log("error in initializing kafka: ", error);
   }
 };
-var kafka_default = startKafka;
+var index_kafka_default = startKafka;
 
 // src/index.ts
 var app = express();
@@ -215,7 +215,7 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.send("Fare service is running!");
 });
-kafka_default();
+index_kafka_default();
 app.listen(process.env.PORT, () => {
   console.log("Fare service is running!");
 });

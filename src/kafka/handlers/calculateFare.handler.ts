@@ -27,7 +27,7 @@ async function calculateFareHandler({ message }: EachMessagePayload) {
         const fareToSend = Object.fromEntries(fare);
         console.log("fare: ", fareToSend);
         
-        await sendKafkaMessage("fare-fetched", { rideId, userId, pickUpLocation: location, destination, locationCoordinates, destinationCoordinates, fare: fareToSend });
+        await sendKafkaMessage("fare-fetched", { rideId, userId, pickUpLocation: location, destination, locationCoordinates, destinationCoordinates, fareDetails: fareToSend });
 
     } catch (error) {
         if (error instanceof Error) {

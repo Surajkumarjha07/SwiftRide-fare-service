@@ -1,5 +1,5 @@
 import { consumerInIt } from "./consumerInIt.js";
-import calculateFareConsumer from "./consumers/calculateFareConsumer.js";
+import calculateFareConsumer from "./consumers/calculateFare.consumer.js";
 import kafkaInIt from "./kafkaAdmin.js";
 import { producerInit } from "./producerInIt.js";
 
