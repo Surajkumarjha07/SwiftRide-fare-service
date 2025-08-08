@@ -1,0 +1,16 @@
+services:
+  service:
+    build: .
+    image: fare-service-image
+    container_name: fare-service
+    restart: always
+    ports:
+      - "5004:4004"
+    env_file:
+      - .env
+    networks:
+      - users-kafka-net
+    
+networks:
+  users-kafka-net:
+    external: true
