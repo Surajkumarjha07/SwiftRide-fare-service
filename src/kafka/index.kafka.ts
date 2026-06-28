@@ -3,23 +3,33 @@ import calculateFareConsumer from "./consumers/calculateFare.consumer.js";
 import kafkaInIt from "./kafkaAdmin.js";
 import { producerInit } from "./producerInIt.js";
 
-const startKafka = async () => {
-    try {
-        await kafkaInIt();
+const MAX_RETRIES = 5;
+const RETRY_DELAY = 5000;
 
-        console.log("Consumer initialization...");
-        await consumerInIt();
-        console.log("Consumer initialized...");
+async function startKafka() {
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            await kafkaInIt();
 
-        console.log("Producer initialization...");
-        await producerInit();
-        console.log("Producer initializated");
+            await consumerInIt();
+            await producerInit();
+            await calculateFareConsumer();
 
-        // Listening to incoming events
-        await calculateFareConsumer();
+            console.log("Kafka initialized successfully.");
+            return;
+        } catch (err) {
+            console.error(
+                `Kafka initialization failed (attempt ${attempt}/${MAX_RETRIES})`
+            );
 
-    } catch (error) {
-        console.log("error in initializing kafka: ", error);
+            if (attempt === MAX_RETRIES) {
+                console.error("Maximum retry attempts reached. Exiting...");
+                throw err;
+            }
+
+            console.log(`Retrying in ${RETRY_DELAY / 1000} seconds...`);
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+        }
     }
 }
 

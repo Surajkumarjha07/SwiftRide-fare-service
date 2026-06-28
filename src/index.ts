@@ -12,7 +12,7 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 // kafka setup
-startKafka();
+await startKafka();
 
 app.listen(process.env.PORT, () => {
     console.log("Fare service is running!");
